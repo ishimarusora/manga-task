@@ -280,6 +280,8 @@ function App() {
                           p{p.page}
                         </p>
 
+                        {/* 今日やるページ の checkbox 部分 */}
+
                         <div className="space-y-2">
                           {[
                             ["draft", "下書き"],
@@ -287,14 +289,14 @@ function App() {
                             ["finish", "仕上げ"],
                           ].map(([key, label]) => (
                             <label
-                              key={key}
+                              key={`${p.page}-${key}`}
                               className="flex items-center gap-2"
                             >
                               <input
                                 type="checkbox"
                                 checked={p.progress[key]}
                                 onChange={() =>
-                                  updateProgress(realIndex, key)
+                                  updateProgress(p.page, key)
                                 }
                               />
                               {label}
@@ -429,6 +431,8 @@ function App() {
                       }
                     />
 
+                    {/* ページ一覧 の checkbox 部分 */}
+
                     <div className="space-y-2">
                       {[
                         ["draft", "下書き"],
@@ -436,14 +440,14 @@ function App() {
                         ["finish", "仕上げ"],
                       ].map(([key, label]) => (
                         <label
-                          key={key}
+                          key={`${p.page}-${key}`}
                           className="flex items-center gap-2"
                         >
                           <input
                             type="checkbox"
                             checked={p.progress[key]}
                             onChange={() =>
-                              updateProgress(realIndex, key)
+                              updateProgress(p.page, key)
                             }
                           />
                           {label}
