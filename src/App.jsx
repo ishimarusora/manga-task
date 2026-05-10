@@ -100,17 +100,27 @@ function App() {
     save(updated);
   };
 
-  const updateProgress = (index, progressKey) => {
-    const updated = [...episodes];
-    const targetPage = updated[currentIndex].pages[index];
+  const updateProgress = (pageNumber, progressKey) => {
+    const updated = episodes.map((episode, epIndex) => {
+      // 今開いている話だけ更新
+      if (epIndex !== currentIndex) return episode;
 
-    updated[currentIndex].pages[index] = {
-      ...targetPage,
-      progress: {
-        ...targetPage.progress,
-        [progressKey]: !targetPage.progress[progressKey],
-      },
-    };
+      return {
+        ...episode,
+        pages: episode.pages.map((page) => {
+          // 対象のページだけ更新
+          if (page.page !== pageNumber) return page;
+
+          return {
+            ...page,
+            progress: {
+              ...page.progress,
+              [progressKey]: !page.progress[progressKey],
+            },
+          };
+        }),
+      };
+    });
 
     save(updated);
   };
