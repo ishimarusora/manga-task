@@ -8,7 +8,7 @@ function App() {
   const [showTodayOnly, setShowTodayOnly] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("mangaTaskV4"));
+    const saved = JSON.parse(localStorage.getItem("mangaTaskV5"));
     if (saved) {
       setEpisodes(saved);
     }
@@ -16,7 +16,7 @@ function App() {
 
   const save = (data) => {
     setEpisodes(data);
-    localStorage.setItem("mangaTaskV4", JSON.stringify(data));
+    localStorage.setItem("mangaTaskV5", JSON.stringify(data));
   };
 
   const current = episodes[currentIndex];
@@ -129,8 +129,11 @@ function App() {
       <h1 className="text-xl font-bold mb-4">漫画管理</h1>
 
       {/* 話選択 */}
+      <label className="block font-bold mb-1">
+        話を選択
+      </label>
       <select
-        className="border p-2 w-full mb-2 rounded"
+        className="border p-2 w-full mb-3 rounded"
         value={currentIndex}
         onChange={(e) => {
           setCurrentIndex(Number(e.target.value));
@@ -145,10 +148,13 @@ function App() {
       </select>
 
       {/* 話追加 */}
-      <div className="flex gap-2 mb-2">
+      <label className="block font-bold mb-1">
+        新しい話を追加
+      </label>
+      <div className="flex gap-2 mb-3">
         <input
           className="border p-2 flex-1 rounded"
-          placeholder="新しい話"
+          placeholder="例：第12話"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />
@@ -175,18 +181,21 @@ function App() {
 
       {current && (
         <>
-          {/* 今日だけ表示 */}
+          {/* 表示切替 */}
           <button
             onClick={() => setShowTodayOnly(!showTodayOnly)}
-            className="bg-gray-200 w-full p-2 rounded mb-3"
+            className="bg-gray-200 w-full p-2 rounded mb-4"
           >
             {showTodayOnly ? "全部表示" : "今日だけ表示"}
           </button>
 
           {/* ページ数 */}
+          <label className="block font-bold mb-1">
+            ページ数を入力
+          </label>
           <input
             type="number"
-            placeholder="ページ数"
+            placeholder="例：20"
             className="border p-2 w-full rounded mb-2"
             value={pageCount}
             onChange={(e) => setPageCount(e.target.value)}
@@ -199,14 +208,21 @@ function App() {
             ページ生成
           </button>
 
-          {/* 日付 */}
+          {/* 開始日 */}
+          <label className="block font-bold mb-1">
+            開始日
+          </label>
           <input
             type="date"
-            className="border p-2 w-full rounded mb-2"
+            className="border p-2 w-full rounded mb-3"
             value={current.startDate}
             onChange={(e) => updateMeta("startDate", e.target.value)}
           />
 
+          {/* 締切日 */}
+          <label className="block font-bold mb-1">
+            締切日
+          </label>
           <input
             type="date"
             className="border p-2 w-full rounded mb-4"
@@ -253,6 +269,10 @@ function App() {
                   </div>
                 </div>
 
+                {/* 作業予定日 */}
+                <label className="block font-bold text-sm">
+                  このページの作業予定日
+                </label>
                 <input
                   type="date"
                   className="border p-2 w-full rounded"
@@ -336,7 +356,7 @@ function App() {
               </div>
             ))}
 
-          {/* 進捗バー */}
+          {/* 全体進捗 */}
           <div className="mt-6">
             <p className="mb-2 font-bold">
               全体進捗：{progressPercent}%
