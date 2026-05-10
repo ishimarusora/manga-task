@@ -8,7 +8,7 @@ function App() {
   const [showTodayOnly, setShowTodayOnly] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("mangaTaskV3"));
+    const saved = JSON.parse(localStorage.getItem("mangaTaskV4"));
     if (saved) {
       setEpisodes(saved);
     }
@@ -16,7 +16,7 @@ function App() {
 
   const save = (data) => {
     setEpisodes(data);
-    localStorage.setItem("mangaTaskV3", JSON.stringify(data));
+    localStorage.setItem("mangaTaskV4", JSON.stringify(data));
   };
 
   const current = episodes[currentIndex];
@@ -65,11 +65,9 @@ function App() {
       weight: 0,
       date: "",
       progress: {
-        name: false,
         draft: false,
         pen: false,
         finish: false,
-        tone: false,
       },
     }));
 
@@ -217,7 +215,7 @@ function App() {
           />
 
           {/* ページ一覧 */}
-          {visiblePages.map((p, i) => {
+          {visiblePages.map((p) => {
             const realIndex = current.pages.findIndex(
               (x) => x.page === p.page
             );
@@ -269,17 +267,6 @@ function App() {
                   <label className="flex items-center gap-2">
                     <input
                       type="checkbox"
-                      checked={p.progress.name}
-                      onChange={() =>
-                        updateProgress(realIndex, "name")
-                      }
-                    />
-                    ネーム
-                  </label>
-
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
                       checked={p.progress.draft}
                       onChange={() =>
                         updateProgress(realIndex, "draft")
@@ -308,17 +295,6 @@ function App() {
                       }
                     />
                     仕上げ
-                  </label>
-
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={p.progress.tone}
-                      onChange={() =>
-                        updateProgress(realIndex, "tone")
-                      }
-                    />
-                    トーン
                   </label>
                 </div>
               </div>
