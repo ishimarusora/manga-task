@@ -211,6 +211,30 @@ function App() {
           )}
         </div>
 
+        {/* 全体進捗 */}
+        <div className="bg-white rounded-2xl shadow p-4">
+          <h2 className="font-bold text-lg mb-2">
+            📈 全体進捗
+          </h2>
+
+          <p className="font-semibold mb-2">
+            {progressPercent}% 完了
+          </p>
+
+          <div className="w-full bg-gray-200 h-4 rounded-full">
+            <div
+              className="bg-green-500 h-4 rounded-full"
+              style={{
+                width: `${progressPercent}%`,
+              }}
+            />
+          </div>
+
+          <p className="text-sm text-gray-500 mt-2">
+            完了：{doneCount} / {totalCount} ページ
+          </p>
+        </div>
+
         {/* 話管理 */}
         <div className="bg-white rounded-2xl shadow p-4">
           <h2 className="font-bold text-lg mb-3">
@@ -467,30 +491,6 @@ function App() {
                   </div>
                 );
               })}
-            </div>
-
-            {/* 全体進捗 */}
-            <div className="bg-white rounded-2xl shadow p-4">
-              <h2 className="font-bold text-lg mb-2">
-                📈 全体進捗
-              </h2>
-
-              <p className="font-semibold mb-2">
-                {progressPercent}% 完了
-              </p>
-
-              <div className="w-full bg-gray-200 h-4 rounded-full">
-                <div
-                  className="bg-green-500 h-4 rounded-full"
-                  style={{
-                    width: `${progressPercent}%`,
-                  }}
-                />
-              </div>
-
-              <p className="text-sm text-gray-500 mt-2">
-                完了：{doneCount} / {totalCount} ページ
-              </p>
             </div>
           </>
         )}
