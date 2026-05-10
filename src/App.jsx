@@ -7,6 +7,9 @@ function App() {
   const [pageCount, setPageCount] = useState("");
   const [showTodayOnly, setShowTodayOnly] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [showCompleteMessage, setShowCompleteMessage] = useState(false);
 
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem("mangaTaskV7"));
@@ -38,6 +41,22 @@ function App() {
     save(updated);
     setNewTitle("");
     setCurrentIndex(updated.length - 1);
+  };
+
+  // addEpisode の下に追加する関数
+
+  const updateEpisodeTitle = () => {
+    if (!editTitle.trim()) return;
+
+    const updated = [...episodes];
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      title: editTitle,
+    };
+
+    save(updated);
+    setIsEditingTitle(false);
+    setEditTitle("");
   };
 
   const deleteEpisode = () => {
@@ -100,23 +119,36 @@ function App() {
     save(updated);
   };
 
+// updateProgress をこれに丸ごと置き換え
+
   const updateProgress = (pageNumber, progressKey) => {
     const updated = episodes.map((episode, epIndex) => {
-      // 今開いている話だけ更新
       if (epIndex !== currentIndex) return episode;
 
       return {
         ...episode,
         pages: episode.pages.map((page) => {
-          // 対象のページだけ更新
           if (page.page !== pageNumber) return page;
+
+          const newProgress = {
+            ...page.progress,
+            [progressKey]: !page.progress[progressKey],
+          };
+
+          const wasComplete = Object.values(page.progress).every(Boolean);
+          const isNowComplete = Object.values(newProgress).every(Boolean);
+
+          if (!wasComplete && isNowComplete) {
+            setShowCompleteMessage(true);
+
+            setTimeout(() => {
+              setShowCompleteMessage(false);
+            }, 2000);
+          }
 
           return {
             ...page,
-            progress: {
-              ...page.progress,
-              [progressKey]: !page.progress[progressKey],
-            },
+            progress: newProgress,
           };
         }),
       };
@@ -202,6 +234,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
+        {showCompleteMessage && (
+          <div className="bg-green-500 text-white text-center font-bold p-4 rounded-2xl shadow-lg">
+            🎉 ページ完了！おつかれさま！
+          </div>
+        )}
 
         {/* ホームダッシュボード */}
         <div className="bg-white rounded-2xl shadow p-5">
@@ -288,6 +325,49 @@ function App() {
               </option>
             ))}
           </select>
+
+        // 「話管理」の select の下に追加
+
+        {current && !isEditingTitle && (
+          <button
+            onClick={() => {
+              setEditTitle(current.title);
+              setIsEditingTitle(true);
+            }}
+            className="w-full bg-gray-200 p-3 rounded-xl mb-3"
+          >
+            話タイトルを編集
+          </button>
+        )}
+
+        {isEditingTitle && (
+          <div className="space-y-2 mb-3">
+            <input
+              className="border p-3 rounded-xl w-full"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+            />
+
+            <div className="flex gap-2">
+              <button
+                onClick={updateEpisodeTitle}
+                className="flex-1 bg-blue-500 text-white p-3 rounded-xl"
+              >
+                保存
+              </button>
+
+              <button
+                onClick={() => {
+                  setIsEditingTitle(false);
+                  setEditTitle("");
+                }}
+                className="flex-1 bg-gray-300 p-3 rounded-xl"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        )}
 
           <div className="flex gap-2">
             <input
