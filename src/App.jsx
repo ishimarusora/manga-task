@@ -16,8 +16,9 @@ function App() {
   }, []);
 
   const save = (data) => {
-    setEpisodes(data);
-    localStorage.setItem("mangaTaskV7", JSON.stringify(data));
+    const cloned = JSON.parse(JSON.stringify(data));
+    setEpisodes(cloned);
+    localStorage.setItem("mangaTaskV7", JSON.stringify(cloned));
   };
 
   const current = episodes[currentIndex];
@@ -71,42 +72,45 @@ function App() {
     }));
 
     const updated = [...episodes];
-    updated[currentIndex].pages = arr;
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      pages: arr,
+    };
+
     save(updated);
   };
 
   const updateMeta = (key, value) => {
     const updated = [...episodes];
-    updated[currentIndex][key] = value;
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      [key]: value,
+    };
     save(updated);
   };
 
   const updatePage = (index, key, value) => {
     const updated = [...episodes];
-    updated[currentIndex].pages[index][key] = value;
+
+    updated[currentIndex].pages[index] = {
+      ...updated[currentIndex].pages[index],
+      [key]: value,
+    };
+
     save(updated);
   };
 
-  // ← チェックボックス不具合修正版
-  const updateProgress = (pageNumber, progressKey) => {
-    const updated = episodes.map((episode, epIndex) => {
-      if (epIndex !== currentIndex) return episode;
+  const updateProgress = (index, progressKey) => {
+    const updated = [...episodes];
+    const targetPage = updated[currentIndex].pages[index];
 
-      return {
-        ...episode,
-        pages: episode.pages.map((page) => {
-          if (page.page !== pageNumber) return page;
-
-          return {
-            ...page,
-            progress: {
-              ...page.progress,
-              [progressKey]: !page.progress[progressKey],
-            },
-          };
-        }),
-      };
-    });
+    updated[currentIndex].pages[index] = {
+      ...targetPage,
+      progress: {
+        ...targetPage.progress,
+        [progressKey]: !targetPage.progress[progressKey],
+      },
+    };
 
     save(updated);
   };
@@ -182,7 +186,7 @@ function App() {
 
           <p className="text-gray-600">
             今日の予定：
-            <span className="font-bold">
+            <span className="font-bold ml-1">
               {todayPages.length}ページ
             </span>
           </p>
@@ -190,7 +194,7 @@ function App() {
           {remainingDays !== null && (
             <p className="text-gray-600">
               締切まであと：
-              <span className="font-bold text-red-500">
+              <span className="font-bold text-red-500 ml-1">
                 {remainingDays}日
               </span>
             </p>
@@ -262,38 +266,44 @@ function App() {
                 <p>今日は予定がありません</p>
               ) : (
                 <div className="space-y-3">
-                  {todayPages.map((p) => (
-                    <div
-                      key={p.page}
-                      className="bg-white rounded-xl p-3"
-                    >
-                      <p className="font-bold mb-2">
-                        p{p.page}
-                      </p>
+                  {todayPages.map((p) => {
+                    const realIndex = current.pages.findIndex(
+                      (x) => x.page === p.page
+                    );
 
-                      <div className="space-y-2">
-                        {[
-                          ["draft", "下書き"],
-                          ["pen", "ペン入れ"],
-                          ["finish", "仕上げ"],
-                        ].map(([key, label]) => (
-                          <label
-                            key={`${p.page}-${key}`}
-                            className="flex items-center gap-2"
-                          >
-                            <input
-                              type="checkbox"
-                              checked={p.progress[key]}
-                              onChange={() =>
-                                updateProgress(p.page, key)
-                              }
-                            />
-                            {label}
-                          </label>
-                        ))}
+                    return (
+                      <div
+                        key={p.page}
+                        className="bg-white rounded-xl p-3"
+                      >
+                        <p className="font-bold mb-2">
+                          p{p.page}
+                        </p>
+
+                        <div className="space-y-2">
+                          {[
+                            ["draft", "下書き"],
+                            ["pen", "ペン入れ"],
+                            ["finish", "仕上げ"],
+                          ].map(([key, label]) => (
+                            <label
+                              key={key}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={p.progress[key]}
+                                onChange={() =>
+                                  updateProgress(realIndex, key)
+                                }
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -307,7 +317,6 @@ function App() {
               <label className="font-semibold block mb-1">
                 ページ数
               </label>
-
               <input
                 type="number"
                 className="border p-3 rounded-xl w-full mb-2"
@@ -326,7 +335,6 @@ function App() {
               <label className="font-semibold block mb-1">
                 開始日
               </label>
-
               <input
                 type="date"
                 className="border p-3 rounded-xl w-full mb-3"
@@ -339,7 +347,6 @@ function App() {
               <label className="font-semibold block mb-1">
                 締切日
               </label>
-
               <input
                 type="date"
                 className="border p-3 rounded-xl w-full"
@@ -348,6 +355,27 @@ function App() {
                   updateMeta("deadline", e.target.value)
                 }
               />
+            </div>
+
+            {/* 表示切替 */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowTodayOnly(!showTodayOnly)}
+                className="flex-1 bg-gray-800 text-white p-3 rounded-xl"
+              >
+                {showTodayOnly ? "全部表示" : "今日だけ"}
+              </button>
+
+              <button
+                onClick={() =>
+                  setShowCompleted(!showCompleted)
+                }
+                className="flex-1 bg-gray-600 text-white p-3 rounded-xl"
+              >
+                {showCompleted
+                  ? "完了を隠す"
+                  : "完了も表示"}
+              </button>
             </div>
 
             {/* ページ一覧 */}
@@ -408,14 +436,14 @@ function App() {
                         ["finish", "仕上げ"],
                       ].map(([key, label]) => (
                         <label
-                          key={`${p.page}-${key}`}
+                          key={key}
                           className="flex items-center gap-2"
                         >
                           <input
                             type="checkbox"
                             checked={p.progress[key]}
                             onChange={() =>
-                              updateProgress(p.page, key)
+                              updateProgress(realIndex, key)
                             }
                           />
                           {label}
