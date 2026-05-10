@@ -16,14 +16,15 @@ function App() {
   }, []);
 
   const save = (data) => {
-    setEpisodes(data);
-    localStorage.setItem("mangaTaskV7", JSON.stringify(data));
+    const cloned = JSON.parse(JSON.stringify(data));
+    setEpisodes(cloned);
+    localStorage.setItem("mangaTaskV7", JSON.stringify(cloned));
   };
 
   const current = episodes[currentIndex];
 
   const addEpisode = () => {
-    if (!newTitle) return;
+    if (!newTitle.trim()) return;
 
     const newEp = {
       id: Date.now(),
@@ -71,28 +72,46 @@ function App() {
     }));
 
     const updated = [...episodes];
-    updated[currentIndex].pages = arr;
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      pages: arr,
+    };
+
     save(updated);
   };
 
   const updateMeta = (key, value) => {
     const updated = [...episodes];
-    updated[currentIndex][key] = value;
+    updated[currentIndex] = {
+      ...updated[currentIndex],
+      [key]: value,
+    };
     save(updated);
   };
 
   const updatePage = (index, key, value) => {
     const updated = [...episodes];
-    updated[currentIndex].pages[index][key] = value;
+
+    updated[currentIndex].pages[index] = {
+      ...updated[currentIndex].pages[index],
+      [key]: value,
+    };
+
     save(updated);
   };
 
   const updateProgress = (index, progressKey) => {
     const updated = [...episodes];
-    const currentValue =
-      updated[currentIndex].pages[index].progress[progressKey];
+    const targetPage = updated[currentIndex].pages[index];
 
-    updated[currentIndex].pages[index].progress[progressKey] = !currentValue;
+    updated[currentIndex].pages[index] = {
+      ...targetPage,
+      progress: {
+        ...targetPage.progress,
+        [progressKey]: !targetPage.progress[progressKey],
+      },
+    };
+
     save(updated);
   };
 
@@ -159,7 +178,7 @@ function App() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
 
-        {/* ホーム感 */}
+        {/* ホーム */}
         <div className="bg-white rounded-2xl shadow p-5">
           <h1 className="text-2xl font-bold mb-2">
             漫画制作管理
@@ -167,7 +186,7 @@ function App() {
 
           <p className="text-gray-600">
             今日の予定：
-            <span className="font-bold">
+            <span className="font-bold ml-1">
               {todayPages.length}ページ
             </span>
           </p>
@@ -175,7 +194,7 @@ function App() {
           {remainingDays !== null && (
             <p className="text-gray-600">
               締切まであと：
-              <span className="font-bold text-red-500">
+              <span className="font-bold text-red-500 ml-1">
                 {remainingDays}日
               </span>
             </p>
@@ -295,10 +314,13 @@ function App() {
                 ⚙️ 基本設定
               </h2>
 
+              <label className="font-semibold block mb-1">
+                ページ数
+              </label>
               <input
                 type="number"
                 className="border p-3 rounded-xl w-full mb-2"
-                placeholder="ページ数"
+                placeholder="ページ数を入力"
                 value={pageCount}
                 onChange={(e) => setPageCount(e.target.value)}
               />
@@ -393,6 +415,10 @@ function App() {
                         ))}
                       </div>
                     </div>
+
+                    <label className="font-semibold block mb-1">
+                      作業予定日
+                    </label>
 
                     <input
                       type="date"
