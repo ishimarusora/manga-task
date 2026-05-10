@@ -8,13 +8,15 @@ function App() {
   const [showTodayOnly, setShowTodayOnly] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("mangaTaskV2"));
-    if (saved) setEpisodes(saved);
+    const saved = JSON.parse(localStorage.getItem("mangaTaskV3"));
+    if (saved) {
+      setEpisodes(saved);
+    }
   }, []);
 
   const save = (data) => {
     setEpisodes(data);
-    localStorage.setItem("mangaTaskV2", JSON.stringify(data));
+    localStorage.setItem("mangaTaskV3", JSON.stringify(data));
   };
 
   const current = episodes[currentIndex];
@@ -39,12 +41,17 @@ function App() {
   const deleteEpisode = () => {
     if (!current) return;
 
-    if (!window.confirm("この話を削除しますか？")) return;
+    const confirmDelete = window.confirm("この話を削除しますか？");
+    if (!confirmDelete) return;
 
     const updated = episodes.filter((_, i) => i !== currentIndex);
     save(updated);
 
-    setCurrentIndex(updated.length === 0 ? 0 : Math.max(0, currentIndex - 1));
+    if (updated.length === 0) {
+      setCurrentIndex(0);
+    } else {
+      setCurrentIndex(Math.max(0, currentIndex - 1));
+    }
   };
 
   const generatePages = () => {
@@ -57,11 +64,23 @@ function App() {
       page: i + 1,
       weight: 0,
       date: "",
-      done: false,
+      progress: {
+        name: false,
+        draft: false,
+        pen: false,
+        finish: false,
+        tone: false,
+      },
     }));
 
     const updated = [...episodes];
     updated[currentIndex].pages = arr;
+    save(updated);
+  };
+
+  const updateMeta = (key, value) => {
+    const updated = [...episodes];
+    updated[currentIndex][key] = value;
     save(updated);
   };
 
@@ -71,9 +90,12 @@ function App() {
     save(updated);
   };
 
-  const updateMeta = (key, value) => {
+  const updateProgress = (index, progressKey) => {
     const updated = [...episodes];
-    updated[currentIndex][key] = value;
+    const currentValue =
+      updated[currentIndex].pages[index].progress[progressKey];
+
+    updated[currentIndex].pages[index].progress[progressKey] = !currentValue;
     save(updated);
   };
 
@@ -91,9 +113,16 @@ function App() {
       return acc;
     }, {}) || {};
 
-  const doneCount = current?.pages.filter((p) => p.done).length || 0;
+  const isPageComplete = (page) => {
+    return Object.values(page.progress).every(Boolean);
+  };
+
+  const doneCount =
+    current?.pages.filter((p) => isPageComplete(p)).length || 0;
+
   const totalCount = current?.pages.length || 0;
-  const progress = totalCount
+
+  const progressPercent = totalCount
     ? Math.round((doneCount / totalCount) * 100)
     : 0;
 
@@ -101,8 +130,9 @@ function App() {
     <div className="p-4 max-w-md mx-auto">
       <h1 className="text-xl font-bold mb-4">漫画管理</h1>
 
+      {/* 話選択 */}
       <select
-        className="border p-2 w-full mb-2"
+        className="border p-2 w-full mb-2 rounded"
         value={currentIndex}
         onChange={(e) => {
           setCurrentIndex(Number(e.target.value));
@@ -116,141 +146,196 @@ function App() {
         ))}
       </select>
 
+      {/* 話追加 */}
       <div className="flex gap-2 mb-2">
         <input
-          className="border p-2 flex-1"
+          className="border p-2 flex-1 rounded"
           placeholder="新しい話"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
         />
+
         <button
           onClick={addEpisode}
-          className="bg-blue-500 text-white px-3 rounded"
+          className="bg-blue-500 text-white px-4 rounded"
         >
           追加
         </button>
       </div>
 
+      {/* 話削除 */}
       {current && (
         <button
           onClick={deleteEpisode}
-          className="bg-red-500 text-white w-full p-2 mb-4 rounded"
+          className="bg-red-500 text-white w-full p-2 rounded mb-4"
         >
           この話を削除
         </button>
       )}
 
+      {!current && <p>まず話を追加してください</p>}
+
       {current && (
         <>
-          {/* 表示切替 */}
+          {/* 今日だけ表示 */}
           <button
             onClick={() => setShowTodayOnly(!showTodayOnly)}
-            className="bg-gray-200 w-full p-2 mb-3 rounded"
+            className="bg-gray-200 w-full p-2 rounded mb-3"
           >
             {showTodayOnly ? "全部表示" : "今日だけ表示"}
           </button>
 
+          {/* ページ数 */}
           <input
             type="number"
             placeholder="ページ数"
-            className="border p-2 w-full mb-2"
+            className="border p-2 w-full rounded mb-2"
             value={pageCount}
             onChange={(e) => setPageCount(e.target.value)}
           />
 
           <button
-            className="bg-blue-500 text-white p-2 w-full mb-4 rounded"
             onClick={generatePages}
+            className="bg-blue-500 text-white w-full p-2 rounded mb-4"
           >
             ページ生成
           </button>
 
+          {/* 日付 */}
           <input
             type="date"
-            className="border p-2 w-full mb-2"
+            className="border p-2 w-full rounded mb-2"
             value={current.startDate}
             onChange={(e) => updateMeta("startDate", e.target.value)}
           />
 
           <input
             type="date"
-            className="border p-2 w-full mb-4"
+            className="border p-2 w-full rounded mb-4"
             value={current.deadline}
             onChange={(e) => updateMeta("deadline", e.target.value)}
           />
 
-          {visiblePages.map((p, i) => (
-            <div key={i} className="mb-3 border p-2 rounded space-y-2">
-              <div className="flex justify-between">
-                <span className={p.done ? "line-through text-gray-400" : ""}>
-                  p{p.page}
-                </span>
+          {/* ページ一覧 */}
+          {visiblePages.map((p, i) => {
+            const realIndex = current.pages.findIndex(
+              (x) => x.page === p.page
+            );
 
-                <div className="flex gap-2">
-                  {[1, 2, 3].map((w) => (
-                    <button
-                      key={w}
-                      onClick={() =>
-                        updatePage(
-                          current.pages.findIndex(
-                            (x) => x.page === p.page
-                          ),
-                          "weight",
-                          w
-                        )
-                      }
-                      className={`px-2 border rounded ${
-                        p.weight === w ? "bg-green-400" : ""
-                      }`}
-                    >
-                      {w}
-                    </button>
-                  ))}
+            return (
+              <div
+                key={p.page}
+                className="border rounded p-3 mb-4 space-y-3"
+              >
+                <div className="flex justify-between items-center">
+                  <span
+                    className={
+                      isPageComplete(p)
+                        ? "line-through text-gray-400 font-bold"
+                        : "font-bold"
+                    }
+                  >
+                    p{p.page}
+                  </span>
+
+                  <div className="flex gap-2">
+                    {[1, 2, 3].map((w) => (
+                      <button
+                        key={w}
+                        onClick={() =>
+                          updatePage(realIndex, "weight", w)
+                        }
+                        className={`px-3 py-1 border rounded ${
+                          p.weight === w ? "bg-green-400" : ""
+                        }`}
+                      >
+                        {w}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <input
-                type="date"
-                className="border p-2 w-full"
-                value={p.date}
-                onChange={(e) =>
-                  updatePage(
-                    current.pages.findIndex(
-                      (x) => x.page === p.page
-                    ),
-                    "date",
-                    e.target.value
-                  )
-                }
-              />
-
-              <label className="flex items-center gap-2">
                 <input
-                  type="checkbox"
-                  checked={p.done}
-                  onChange={() =>
-                    updatePage(
-                      current.pages.findIndex(
-                        (x) => x.page === p.page
-                      ),
-                      "done",
-                      !p.done
-                    )
+                  type="date"
+                  className="border p-2 w-full rounded"
+                  value={p.date}
+                  onChange={(e) =>
+                    updatePage(realIndex, "date", e.target.value)
                   }
                 />
-                完了
-              </label>
-            </div>
-          ))}
 
-          <h2 className="font-bold mt-4">日別スケジュール</h2>
+                {/* 工程チェック */}
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.progress.name}
+                      onChange={() =>
+                        updateProgress(realIndex, "name")
+                      }
+                    />
+                    ネーム
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.progress.draft}
+                      onChange={() =>
+                        updateProgress(realIndex, "draft")
+                      }
+                    />
+                    下書き
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.progress.pen}
+                      onChange={() =>
+                        updateProgress(realIndex, "pen")
+                      }
+                    />
+                    ペン入れ
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.progress.finish}
+                      onChange={() =>
+                        updateProgress(realIndex, "finish")
+                      }
+                    />
+                    仕上げ
+                  </label>
+
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={p.progress.tone}
+                      onChange={() =>
+                        updateProgress(realIndex, "tone")
+                      }
+                    />
+                    トーン
+                  </label>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 日別スケジュール */}
+          <h2 className="font-bold text-lg mt-4 mb-2">
+            日別スケジュール
+          </h2>
 
           {Object.entries(grouped)
             .sort()
             .map(([date, list]) => (
               <div
                 key={date}
-                className={`border p-2 mt-2 rounded ${
+                className={`border rounded p-3 mb-2 ${
                   date === today ? "bg-yellow-100" : ""
                 }`}
               >
@@ -258,12 +343,12 @@ function App() {
                   {date} {date === today && "← 今日"}
                 </p>
 
-                <div className="flex gap-2 flex-wrap mt-2">
+                <div className="flex flex-wrap gap-2 mt-2">
                   {list.map((p) => (
                     <span
                       key={p.page}
                       className={`px-2 py-1 border rounded text-sm ${
-                        p.done
+                        isPageComplete(p)
                           ? "bg-gray-300 line-through"
                           : "bg-blue-100"
                       }`}
@@ -275,13 +360,19 @@ function App() {
               </div>
             ))}
 
-          <div className="mt-4">
-            <p>進捗: {progress}%</p>
-            <div className="w-full bg-gray-200 h-3 rounded">
+          {/* 進捗バー */}
+          <div className="mt-6">
+            <p className="mb-2 font-bold">
+              全体進捗：{progressPercent}%
+            </p>
+
+            <div className="w-full bg-gray-200 h-4 rounded">
               <div
-                className="bg-green-500 h-3 rounded"
-                style={{ width: `${progress}%` }}
-              ></div>
+                className="bg-green-500 h-4 rounded"
+                style={{
+                  width: `${progressPercent}%`,
+                }}
+              />
             </div>
           </div>
         </>
