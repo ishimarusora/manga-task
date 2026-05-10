@@ -6,9 +6,10 @@ function App() {
   const [newTitle, setNewTitle] = useState("");
   const [pageCount, setPageCount] = useState("");
   const [showTodayOnly, setShowTodayOnly] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("mangaTaskV6"));
+    const saved = JSON.parse(localStorage.getItem("mangaTaskV7"));
     if (saved) {
       setEpisodes(saved);
     }
@@ -16,7 +17,7 @@ function App() {
 
   const save = (data) => {
     setEpisodes(data);
-    localStorage.setItem("mangaTaskV6", JSON.stringify(data));
+    localStorage.setItem("mangaTaskV7", JSON.stringify(data));
   };
 
   const current = episodes[currentIndex];
@@ -40,7 +41,6 @@ function App() {
 
   const deleteEpisode = () => {
     if (!current) return;
-
     if (!window.confirm("この話を削除しますか？")) return;
 
     const updated = episodes.filter((_, i) => i !== currentIndex);
@@ -96,26 +96,47 @@ function App() {
     save(updated);
   };
 
-  const today = new Date().toISOString().split("T")[0];
+  const isPageComplete = (page) => {
+    return Object.values(page.progress).every(Boolean);
+  };
 
-  const visiblePages = showTodayOnly
-    ? current?.pages.filter((p) => p.date === today)
-    : current?.pages || [];
+  const getProgressStatus = (page) => {
+    const values = Object.values(page.progress);
+    const done = values.filter(Boolean).length;
+
+    if (done === 0) return "notStarted";
+    if (done === values.length) return "completed";
+    return "inProgress";
+  };
+
+  const getCardStyle = (page) => {
+    const status = getProgressStatus(page);
+
+    if (status === "completed") {
+      return "bg-green-50 border-green-300";
+    }
+
+    if (status === "inProgress") {
+      return "bg-yellow-50 border-yellow-300";
+    }
+
+    return "bg-white border-gray-200";
+  };
+
+  const today = new Date().toISOString().split("T")[0];
 
   const todayPages =
     current?.pages.filter((p) => p.date === today) || [];
 
-  const grouped =
-    current?.pages.reduce((acc, p) => {
-      if (!p.date) return acc;
-      if (!acc[p.date]) acc[p.date] = [];
-      acc[p.date].push(p);
-      return acc;
-    }, {}) || {};
+  let visiblePages = current?.pages || [];
 
-  const isPageComplete = (page) => {
-    return Object.values(page.progress).every(Boolean);
-  };
+  if (showTodayOnly) {
+    visiblePages = visiblePages.filter((p) => p.date === today);
+  }
+
+  if (!showCompleted) {
+    visiblePages = visiblePages.filter((p) => !isPageComplete(p));
+  }
 
   const doneCount =
     current?.pages.filter((p) => isPageComplete(p)).length || 0;
@@ -126,15 +147,39 @@ function App() {
     ? Math.round((doneCount / totalCount) * 100)
     : 0;
 
+  const remainingDays =
+    current?.deadline
+      ? Math.ceil(
+          (new Date(current.deadline) - new Date()) /
+            (1000 * 60 * 60 * 24)
+        )
+      : null;
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
 
-        {/* タイトル */}
-        <div className="bg-white rounded-2xl shadow p-4">
-          <h1 className="text-2xl font-bold text-center">
+        {/* ホーム感 */}
+        <div className="bg-white rounded-2xl shadow p-5">
+          <h1 className="text-2xl font-bold mb-2">
             漫画制作管理
           </h1>
+
+          <p className="text-gray-600">
+            今日の予定：
+            <span className="font-bold">
+              {todayPages.length}ページ
+            </span>
+          </p>
+
+          {remainingDays !== null && (
+            <p className="text-gray-600">
+              締切まであと：
+              <span className="font-bold text-red-500">
+                {remainingDays}日
+              </span>
+            </p>
+          )}
         </div>
 
         {/* 話管理 */}
@@ -143,9 +188,6 @@ function App() {
             📚 話管理
           </h2>
 
-          <label className="block text-sm font-semibold mb-1">
-            話を選択
-          </label>
           <select
             className="border p-3 rounded-xl w-full mb-3"
             value={currentIndex}
@@ -161,14 +203,10 @@ function App() {
             ))}
           </select>
 
-          <label className="block text-sm font-semibold mb-1">
-            新しい話を追加
-          </label>
-
           <div className="flex gap-2">
             <input
               className="border p-3 rounded-xl flex-1"
-              placeholder="例：第12話"
+              placeholder="新しい話"
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
             />
@@ -199,28 +237,54 @@ function App() {
 
         {current && (
           <>
-            {/* 今日の作業 */}
+            {/* 今日やるページ */}
             <div className="bg-yellow-100 rounded-2xl shadow p-4">
               <h2 className="font-bold text-lg mb-3">
                 🔥 今日やるページ
               </h2>
 
               {todayPages.length === 0 ? (
-                <p>今日の予定はありません</p>
+                <p>今日は予定がありません</p>
               ) : (
-                <div className="flex flex-wrap gap-2">
-                  {todayPages.map((p) => (
-                    <span
-                      key={p.page}
-                      className={`px-3 py-1 rounded-full border ${
-                        isPageComplete(p)
-                          ? "bg-gray-300 line-through"
-                          : "bg-white"
-                      }`}
-                    >
-                      p{p.page}
-                    </span>
-                  ))}
+                <div className="space-y-3">
+                  {todayPages.map((p) => {
+                    const realIndex = current.pages.findIndex(
+                      (x) => x.page === p.page
+                    );
+
+                    return (
+                      <div
+                        key={p.page}
+                        className="bg-white rounded-xl p-3"
+                      >
+                        <p className="font-bold mb-2">
+                          p{p.page}
+                        </p>
+
+                        <div className="space-y-2">
+                          {[
+                            ["draft", "下書き"],
+                            ["pen", "ペン入れ"],
+                            ["finish", "仕上げ"],
+                          ].map(([key, label]) => (
+                            <label
+                              key={key}
+                              className="flex items-center gap-2"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={p.progress[key]}
+                                onChange={() =>
+                                  updateProgress(realIndex, key)
+                                }
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -231,13 +295,10 @@ function App() {
                 ⚙️ 基本設定
               </h2>
 
-              <label className="block text-sm font-semibold mb-1">
-                ページ数
-              </label>
               <input
                 type="number"
                 className="border p-3 rounded-xl w-full mb-2"
-                placeholder="例：20"
+                placeholder="ページ数"
                 value={pageCount}
                 onChange={(e) => setPageCount(e.target.value)}
               />
@@ -249,7 +310,7 @@ function App() {
                 ページ生成
               </button>
 
-              <label className="block text-sm font-semibold mb-1">
+              <label className="font-semibold block mb-1">
                 開始日
               </label>
               <input
@@ -261,7 +322,7 @@ function App() {
                 }
               />
 
-              <label className="block text-sm font-semibold mb-1">
+              <label className="font-semibold block mb-1">
                 締切日
               </label>
               <input
@@ -275,14 +336,27 @@ function App() {
             </div>
 
             {/* 表示切替 */}
-            <button
-              onClick={() => setShowTodayOnly(!showTodayOnly)}
-              className="bg-gray-800 text-white w-full p-3 rounded-2xl"
-            >
-              {showTodayOnly ? "全部表示" : "今日だけ表示"}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowTodayOnly(!showTodayOnly)}
+                className="flex-1 bg-gray-800 text-white p-3 rounded-xl"
+              >
+                {showTodayOnly ? "全部表示" : "今日だけ"}
+              </button>
 
-            {/* ページ進捗 */}
+              <button
+                onClick={() =>
+                  setShowCompleted(!showCompleted)
+                }
+                className="flex-1 bg-gray-600 text-white p-3 rounded-xl"
+              >
+                {showCompleted
+                  ? "完了を隠す"
+                  : "完了も表示"}
+              </button>
+            </div>
+
+            {/* ページ一覧 */}
             <div className="space-y-4">
               {visiblePages.map((p) => {
                 const realIndex = current.pages.findIndex(
@@ -292,7 +366,9 @@ function App() {
                 return (
                   <div
                     key={p.page}
-                    className="bg-white rounded-2xl shadow p-4"
+                    className={`rounded-2xl shadow p-4 border ${getCardStyle(
+                      p
+                    )}`}
                   >
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-bold text-lg">
@@ -318,9 +394,6 @@ function App() {
                       </div>
                     </div>
 
-                    <label className="block text-sm font-semibold mb-1">
-                      作業予定日
-                    </label>
                     <input
                       type="date"
                       className="border p-3 rounded-xl w-full mb-3"
