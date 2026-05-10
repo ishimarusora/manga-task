@@ -9,7 +9,7 @@ function App() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("mangaTaskV8"));
+    const saved = JSON.parse(localStorage.getItem("mangaTaskV7"));
     if (saved) {
       setEpisodes(saved);
     }
@@ -17,7 +17,7 @@ function App() {
 
   const save = (data) => {
     setEpisodes(data);
-    localStorage.setItem("mangaTaskV8", JSON.stringify(data));
+    localStorage.setItem("mangaTaskV7", JSON.stringify(data));
   };
 
   const current = episodes[currentIndex];
@@ -59,24 +59,16 @@ function App() {
     const count = Number(pageCount);
     if (!count || count <= 0) return;
 
-    const oldPages = current.pages || [];
-
-    const arr = Array.from({ length: count }, (_, i) => {
-      const prev = oldPages[i];
-
-      return (
-        prev || {
-          page: i + 1,
-          weight: 0,
-          date: "",
-          progress: {
-            draft: false,
-            pen: false,
-            finish: false,
-          },
-        }
-      );
-    });
+    const arr = Array.from({ length: count }, (_, i) => ({
+      page: i + 1,
+      weight: 0,
+      date: "",
+      progress: {
+        draft: false,
+        pen: false,
+        finish: false,
+      },
+    }));
 
     const updated = [...episodes];
     updated[currentIndex].pages = arr;
@@ -91,19 +83,7 @@ function App() {
 
   const updatePage = (index, key, value) => {
     const updated = [...episodes];
-
     updated[currentIndex].pages[index][key] = value;
-
-    // 前回の日付を次ページへ自動コピー
-    if (
-      key === "date" &&
-      value &&
-      updated[currentIndex].pages[index + 1] &&
-      !updated[currentIndex].pages[index + 1].date
-    ) {
-      updated[currentIndex].pages[index + 1].date = value;
-    }
-
     save(updated);
   };
 
@@ -179,7 +159,7 @@ function App() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
 
-        {/* ホーム */}
+        {/* ホーム感 */}
         <div className="bg-white rounded-2xl shadow p-5">
           <h1 className="text-2xl font-bold mb-2">
             漫画制作管理
@@ -414,9 +394,6 @@ function App() {
                       </div>
                     </div>
 
-                    <label className="font-semibold block mb-1">
-                      作業予定日
-                    </label>
                     <input
                       type="date"
                       className="border p-3 rounded-xl w-full mb-3"
@@ -425,10 +402,6 @@ function App() {
                         updatePage(realIndex, "date", e.target.value)
                       }
                     />
-
-                    <p className="text-xs text-gray-500 mb-3">
-                      ※ 日付を入力すると次のページにも自動で引き継がれます
-                    </p>
 
                     <div className="space-y-2">
                       {[
