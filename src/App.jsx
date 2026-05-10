@@ -157,7 +157,11 @@ function App() {
   const todayPages =
     current?.pages.filter((p) => p.date === today) || [];
 
-  let visiblePages = current?.pages || [];
+/* =========================
+② visiblePages をこれに置き換え
+========================= */
+
+  let visiblePages = [...(current?.pages || [])];
 
   if (showTodayOnly) {
     visiblePages = visiblePages.filter((p) => p.date === today);
@@ -166,6 +170,17 @@ function App() {
   if (!showCompleted) {
     visiblePages = visiblePages.filter((p) => !isPageComplete(p));
   }
+
+  /* 完了ページを自動で下へ */
+  visiblePages.sort((a, b) => {
+    const aDone = isPageComplete(a);
+    const bDone = isPageComplete(b);
+
+    if (aDone && !bDone) return 1;
+    if (!aDone && bDone) return -1;
+
+    return a.page - b.page;
+  });
 
   const doneCount =
     current?.pages.filter((p) => isPageComplete(p)).length || 0;
@@ -188,51 +203,69 @@ function App() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-md mx-auto space-y-4">
 
-        {/* ホーム */}
+        {/* ホームダッシュボード */}
         <div className="bg-white rounded-2xl shadow p-5">
-          <h1 className="text-2xl font-bold mb-2">
+          <h1 className="text-2xl font-bold mb-4">
             漫画制作管理
           </h1>
 
-          <p className="text-gray-600">
-            今日の予定：
-            <span className="font-bold ml-1">
-              {todayPages.length}ページ
-            </span>
-          </p>
+          <div className="grid grid-cols-2 gap-3">
 
-          {remainingDays !== null && (
-            <p className="text-gray-600">
-              締切まであと：
-              <span className="font-bold text-red-500 ml-1">
-                {remainingDays}日
-              </span>
-            </p>
-          )}
-        </div>
+            {/* 今日やること */}
+            <div className="bg-yellow-100 rounded-2xl p-4">
+              <p className="text-sm text-gray-600 mb-1">
+                🔥 今日やること
+              </p>
 
-        {/* 全体進捗 */}
-        <div className="bg-white rounded-2xl shadow p-4">
-          <h2 className="font-bold text-lg mb-2">
-            📈 全体進捗
-          </h2>
+              <p className="text-3xl font-bold">
+                {todayPages.length}
+              </p>
 
-          <p className="font-semibold mb-2">
-            {progressPercent}% 完了
-          </p>
+              <p className="text-sm">
+                ページ
+              </p>
+            </div>
 
-          <div className="w-full bg-gray-200 h-4 rounded-full">
-            <div
-              className="bg-green-500 h-4 rounded-full"
-              style={{
-                width: `${progressPercent}%`,
-              }}
-            />
+            {/* 全体進捗 */}
+            <div className="bg-green-50 rounded-2xl p-4">
+              <p className="text-sm text-gray-600 mb-1">
+                📈 進捗
+              </p>
+
+              <p className="text-3xl font-bold">
+                {progressPercent}%
+              </p>
+
+              <p className="text-sm">
+                完了
+              </p>
+            </div>
+
+            {/* 締切 */}
+            <div className="bg-red-50 rounded-2xl p-4 col-span-2">
+              <p className="text-sm text-gray-600 mb-1">
+                ⚠ 締切まで
+              </p>
+
+              {remainingDays !== null ? (
+                <>
+                  <p className="text-2xl font-bold text-red-500">
+                    あと {remainingDays} 日
+                  </p>
+
+                  {remainingDays <= 5 && (
+                    <p className="text-sm text-red-500 font-semibold mt-1">
+                      急ぎです！優先して進めましょう
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500">
+                  締切日を設定してください
+                </p>
+              )}
+            </div>
           </div>
-
-          <p className="text-sm text-gray-500 mt-2">
-            完了：{doneCount} / {totalCount} ページ
-          </p>
         </div>
 
         {/* 話管理 */}
