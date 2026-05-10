@@ -601,6 +601,11 @@ function App() {
                         </label>
                       ))}
                     </div>
+                    {isPageComplete(p) && (
+                      <div className="mt-3 bg-green-100 text-green-700 font-bold text-center p-2 rounded-xl">
+                        🎉 このページは完了しました！
+                      </div>
+                    )}
                   </div>
                 );
               })}
